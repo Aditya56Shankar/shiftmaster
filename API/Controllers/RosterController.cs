@@ -31,7 +31,7 @@ namespace API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Supervisor")]
+        [Authorize(Roles = "Shift Supervisior")]
         public async Task<IActionResult> CreateRoster([FromBody] CreateRosterDto dto)
         {
             var res = mapper.Map<WeeklyRoster>(dto);
@@ -42,6 +42,7 @@ namespace API.Controllers
 
         //HLD Endpoint: GET /api/rosters/{locationId}/{week} (Action: Get roster)//Note: '{week}' represents the week start date string (e.g., "2026-06-15")
         [HttpGet]
+       
         [Route("{locationId:int}/{week}")]
         [Authorize(Roles = "Supervisor,Admin")]
         public async Task<IActionResult> GetRoster(int locationId, string week)

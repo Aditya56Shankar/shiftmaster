@@ -3,25 +3,23 @@ using System.Linq;
 using System.Text;
 using AutoMapper;
 using Data.Context;
+using Data.Implementation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using NSwag;
+using NSwag.Generation.Processors.Security;
 using Services.Implementation;
 using Services.Implementation.Repositories;
 using Services.Interfaces;
 using Services.Interfaces.Repositories;
 using Services.Mapper;
 using ShiftMaster.Application.Implementation;
-using NSwag.Generation.Processors.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// =========================================================================
-// 1. DATABASE CONNECTION CONFIGURATION
-// =========================================================================
 
 builder.Services.AddDbContext<ApplicationDbContext>(
     (sp, options) => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")),
@@ -34,9 +32,6 @@ builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
 );
 
 
-// =========================================================================
-// 2. DOMAIN LOGIC SERVICES
-// =========================================================================
 
 builder.Services.AddScoped<IWorkLocationService, WorkLocationService>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
@@ -49,9 +44,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 
 
-// =========================================================================
-// 3. WORKFLOW ENGINE SERVICES
-// =========================================================================
+
 
 builder.Services.AddScoped<ICoverAssignmentService, CoverAssignmentService>();
 builder.Services.AddScoped<IShiftSwapService, ShiftSwapService>();
@@ -59,9 +52,7 @@ builder.Services.AddScoped<IOvertimeService, OvertimeService>();
 builder.Services.AddScoped<IRosterValidationService, RosterValidationService>();
 
 
-// =========================================================================
-// 4. REPOSITORY DEPENDENCY INJECTION
-// =========================================================================
+
 
 builder.Services.AddScoped<ILeaveBlockRepository, LeaveBlockRepository>();
 builder.Services.AddScoped<IAvailabilityRepository, AvailabilityRepository>();
@@ -72,10 +63,11 @@ builder.Services.AddScoped<ICoverAssignmentRepository, CoverAssignmentRepository
 builder.Services.AddScoped<IShiftSwapRepository, ShiftSwapRepository>();
 builder.Services.AddScoped<IOvertimeRepository, OvertimeRepository>();
 
-
-// =========================================================================
-// 5. CONTROLLERS, JSON, & AUTOMAPPER CONFIGURATION
-// =========================================================================
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+// Ensure AuthService is also still registered
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAuditRepository, AuditRepository>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -91,9 +83,7 @@ builder.Services.AddAutoMapper(cfg =>
 });
 
 
-// =========================================================================
-// 6. JWT AUTHENTICATION & AUTHORIZATION CONFIGURATION
-// =========================================================================
+
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "SuperSecretKeyThatIsAtLeast32BytesLong!!";
 
@@ -114,15 +104,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("RequireAdminOnly", policy => policy.RequireRole("Admin"));
-});
 
 
-// =========================================================================
-// 7. OPENAPI / NSWAG DOCUMENTATION CONFIGURATION
-// =========================================================================
 
 builder.Services.AddOpenApiDocument(document =>
 {
@@ -143,10 +126,6 @@ builder.Services.AddOpenApiDocument(document =>
 });
 
 
-// =========================================================================
-// 8. HTTP REQUEST PIPELINE (MIDDLEWARE)
-// =========================================================================
-
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -165,9 +144,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 
-// =========================================================================
-// 9. DATABASE INITIALIZATION
-// =========================================================================
 
 using (var scope = app.Services.CreateScope())
 {
